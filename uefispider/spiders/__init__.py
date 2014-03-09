@@ -9,7 +9,7 @@ import os
 class UefiSpider(Spider):
   name = 'UefiSpider'
 
-  def __init__(self, output= 'output'):
-    self.output = output
+  def __init__(self, dump= 'output'):
+    self.output = dump
     if self.output[0] != '/':
       self.output = os.path.join(os.getcwd(), self.output)
