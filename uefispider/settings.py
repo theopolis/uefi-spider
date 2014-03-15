@@ -17,3 +17,5 @@ USER_AGENT = 'uefispider (+https://github.com/theopolis/uefi-spider)'
 ITEM_PIPELINES = {
   'uefispider.pipelines.UefispiderPipeline': 1
 }
+
+COOKIES_DEBUG = True

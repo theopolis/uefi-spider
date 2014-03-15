@@ -15,6 +15,7 @@ class DellSpider(UefiSpider):
   name = 'DellSpider'
   allowed_domains = [
     "search.dell.com", 
+    "www.dell.com",
     "dell.com"
     #"downloadmirror.intel.com",
     #"search.intel.com",
@@ -60,11 +61,13 @@ class DellSpider(UefiSpider):
     total_results = sel.css(".PaginationCtrlResltTxt")
     if len(total_results) < 1:
       ### Cannot determine the number of search results
+      print "Error: cannot determine search results."
       return 
 
     total_string = total_results.extract()[0]
     total_match = re.search(total_regex, total_string)
     if total_match is None:
+      print "Error: cannot determine search results."
       return
 
     ### It turns out this is just a guestimate by Dell, let's double it?!
@@ -98,20 +101,22 @@ class DellSpider(UefiSpider):
       result_item = DellBiosUpdateLinkItem()
       compatibility = driver.css("input.hdnCompProduct").xpath("@value")
       if len(compatibility) != 0:
+        ### Compatibility tells us the model and thus mainboard/config.
         result_item["compatibility"] = compatibility.extract()[0].strip().split("#")
       url = driver.css("input.hdnDriverURL").xpath("@value")
       if len(url) == 0:
         print "ERROR: No URL for update?"
         continue
+      ### Driver type is saved as a sanity check.
       result_item["url"] = url.extract()[0]
       details = driver.css("div.driver_detail::text").extract()
       result_item["driver_type"] = details[0][2:]
+      ### Release date only includes the date, the previous versions include a timestamp.
       result_item["release_date"] = details[1][2:]
       result_items.append(result_item)
 
       for item in result_items:
         yield Request(url= item["url"], meta= {"result_item": item}, callback= self.parse_update)
-        #return
     pass
 
   def parse_update(self, response):
@@ -127,6 +132,7 @@ class DellSpider(UefiSpider):
     except Exception, e:
       raise Exception("Error: cannot extract links. (%s)" % str(e))
 
+    ### Save the release link separately (if it exists).
     for link in driver_links:
       if link.find("Release") >= 0 and link[-3:] == "txt":
         notes_link = link
@@ -141,10 +147,15 @@ class DellSpider(UefiSpider):
 
     ### There is inconsistency in naming previous versions, which may include spaces and commas.
     previous_versions = []
-    versions = sel.css("a#Versions::text").extract()
-    for previous_version in versions:
-      previous_versions.append("".join([c for c in previous_version if c not in [",", " "]]))
+    pversions = sel.css("a#Versions")
+    for pversion in pversions:
+      version_name = "".join([c for c in pversion.xpath("text()").extract()[0] if c not in [",", " "]])
+      version_link = "http://www.dell.com/%s" % pversion.xpath("@href").extract()[0].split("&", 1)[0]
+      version_date = pversion.xpath("../../following-sibling::td/text()").extract()[0].strip()
+      version_id   = version_link[version_link.find("driverId=") + len("driverId="):]
+      previous_versions.append((version_name, version_link, version_date, version_id))
 
+    #print previous_versions
     importance = "Unknown"
     fixes = ""
 
@@ -186,10 +197,6 @@ class DellSpider(UefiSpider):
       break
 
     yield item
-
-    #from scrapy.shell import inspect_response
-    #inspect_response(response)
-
     pass
 
   def parse_binary(self, response):

@@ -8,12 +8,35 @@ from scrapy.item import Item, Field
 class UefispiderItem(Item):
     item_id = Field()
     binary = Field()
+    binary_name = Field()
     pass
 
 class BinaryItem(UefispiderItem):
     ### This item will only write a binary object.
     binary_name = Field()
     pass
+
+class HPBiosUpdateLinkItem(UefispiderItem):
+    url = Field()
+    date = Field()
+    name = Field()
+
+class HPBiosUpdatePageItem(UefispiderItem):
+    bios_url = Field()
+    notes_url = Field()
+    version = Field()
+    download_name = Field()
+    attrs = Field()
+
+    ### From revision history
+    previous_versions = Field()
+
+    ### From a textual-update
+    importance = Field()
+    compatibility = Field()
+    ssm = Field() # remote update
+    desc = Field()
+    fixes = Field()
 
 class IntelBiosUpdateLinkItem(UefispiderItem):
     url = Field()
