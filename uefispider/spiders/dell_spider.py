@@ -114,7 +114,7 @@ class DellSpider(UefiSpider):
         systems = compatibility.extract()[0].strip().split("#")
         result_item["compatibility"] = []
         for system in systems:
-          if sytem.find("DesktopLatitudeOptiplexPrecisionVostro") >= 0:
+          if system.find("DesktopLatitudeOptiplexPrecisionVostro") >= 0:
             result_item["compatibility"].append("XPS Notebook R720")
           else:
             result_item["compatibility"].append(system.strip())
@@ -213,7 +213,7 @@ class DellSpider(UefiSpider):
     if len(details) > 0:
       date = details[0].xpath("./following-sibling::td/text()").extract()
       if len(date) > 0:
-        link_item["release_date"]
+        link_item["release_date"] = date[0].strip()
     item["attrs"] = dict(link_item)
 
     ### Set the item ID as the driver/update link ID.
@@ -233,9 +233,9 @@ class DellSpider(UefiSpider):
     for update in previous_versions:
       update_item = DellBiosUpdateLinkItem()
       update_item["url"] = update[1]
-      update_item["release_date"] = update[3]
+      update_item["release_date"] = update[2]
       update_item["compatibility"] = link_item["compatibility"]
-      update_item["desc"] = link_item["desc"]
+      #update_item["desc"] = link_item["desc"]
       yield Request(url= update[1], meta= {"result_item": update_item}, 
         callback= self.parse_update)
 
