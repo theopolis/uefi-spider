@@ -45,11 +45,20 @@ class DellSpider(UefiSpider):
   filetype_blacklist = ["txt", "sign", "pdf"]
 
   results_url = "http://search.dell.com/results.aspx?%s"
-
   start_urls = [
     results_url % 
       ("&".join(["%s=%s" % (k, v) for k, v in dell_search_vars.iteritems()]))
   ]
+
+  ### List of crawled item IDs
+  item_ids = []
+
+  def _get_item_id(self, url):
+    driver_id = url.find("driverId=")
+    item = url[driver_id + len("driverId="):]
+    if item.find("&") >= 0:
+      item = item[:item.find("&")]
+    return item
 
   def parse(self, response):
     sel = Selector(response)
@@ -102,7 +111,14 @@ class DellSpider(UefiSpider):
       compatibility = driver.css("input.hdnCompProduct").xpath("@value")
       if len(compatibility) != 0:
         ### Compatibility tells us the model and thus mainboard/config.
-        result_item["compatibility"] = compatibility.extract()[0].strip().split("#")
+        systems = compatibility.extract()[0].strip().split("#")
+        result_item["compatibility"] = []
+        for system in systems:
+          if sytem.find("DesktopLatitudeOptiplexPrecisionVostro") >= 0:
+            result_item["compatibility"].append("XPS Notebook R720")
+          else:
+            result_item["compatibility"].append(system.strip())
+
       url = driver.css("input.hdnDriverURL").xpath("@value")
       if len(url) == 0:
         print "ERROR: No URL for update?"
@@ -115,8 +131,12 @@ class DellSpider(UefiSpider):
       result_item["release_date"] = details[1][2:]
       result_items.append(result_item)
 
-      for item in result_items:
-        yield Request(url= item["url"], meta= {"result_item": item}, callback= self.parse_update)
+    for item in result_items:
+      item_id = self._get_item_id(item["url"])
+      ### Do not attempt duplicate update parsing.
+      if item_id in self.item_ids:
+        continue
+      yield Request(url= item["url"], meta= {"result_item": item}, callback= self.parse_update)
     pass
 
   def parse_update(self, response):
@@ -173,6 +193,8 @@ class DellSpider(UefiSpider):
         except Exception, e:
           print e
           pass
+      if expand_text.find("Compatibility") == 0:
+        system_set = expand.xpath("./following-sibling")
 
     item = DellBiosUpdatePageItem()
     item["notes_url"] = notes_link
@@ -182,10 +204,21 @@ class DellSpider(UefiSpider):
     item["version"] = version
     item["importance"] = importance
     item["fixes"] = fixes
-    item["attrs"] = dict(response.meta["result_item"])
+    #item["attrs"] = dict(response.meta["result_item"])
+
+    link_item = response.meta["result_item"]
+
+    ### Try to get date (again)
+    details = sel.css(".DriverDetails_Table_ItemLabel")
+    if len(details) > 0:
+      date = details[0].xpath("./following-sibling::td/text()").extract()
+      if len(date) > 0:
+        link_item["release_date"]
+    item["attrs"] = dict(link_item)
 
     ### Set the item ID as the driver/update link ID.
-    item["item_id"] = item["attrs"]["url"][item["attrs"]["url"].find("driverId=") + len("driverId="):]
+    item["item_id"] = self._get_item_id(item["attrs"]["url"])
+    self.item_ids.append(item["item_id"])
 
     for i in xrange(len(item["bios_urls"])):
       if item["bios_urls"][i].split(".")[-1].lower() != "exe":
@@ -195,6 +228,16 @@ class DellSpider(UefiSpider):
         meta= {"name": item["file_names"][i], "item_id": item["item_id"]})
       ### For now, only download the first exe.
       break
+
+    ### Crawl the update versions (may be duplicates) for this system
+    for update in previous_versions:
+      update_item = DellBiosUpdateLinkItem()
+      update_item["url"] = update[1]
+      update_item["release_date"] = update[3]
+      update_item["compatibility"] = link_item["compatibility"]
+      update_item["desc"] = link_item["desc"]
+      yield Request(url= update[1], meta= {"result_item": update_item}, 
+        callback= self.parse_update)
 
     yield item
     pass
@@ -206,3 +249,4 @@ class DellSpider(UefiSpider):
     item["item_id"] = response.meta["item_id"]
 
     yield item
+
