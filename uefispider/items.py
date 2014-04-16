@@ -16,6 +16,19 @@ class BinaryItem(UefispiderItem):
     binary_name = Field()
     pass
 
+class MsiUpdateLinkItem(UefispiderItem):
+    url = Field()
+    title = Field()
+    id = Field()
+
+class MsiUpdatePageItem(UefispiderItem):
+    desc = Field()
+    driver_type = Field()
+    bios_url = Field()
+    version = Field()
+    date = Field()
+    attrs = Field()
+
 class HPBiosUpdateLinkItem(UefispiderItem):
     url = Field()
     date = Field()
