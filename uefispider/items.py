@@ -16,6 +16,19 @@ class BinaryItem(UefispiderItem):
     binary_name = Field()
     pass
 
+class AsrockLinkItem(UefispiderItem):
+    chipset = Field()
+    product = Field()
+    url = Field()
+
+class AsrockUpdateItem(UefispiderItem):
+    version = Field()
+    date = Field()
+    desc = Field()
+    bios_type = Field()
+    bios_url = Field()
+    attrs = Field()
+
 class MsiUpdateLinkItem(UefispiderItem):
     url = Field()
     title = Field()
