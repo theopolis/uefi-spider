@@ -16,6 +16,27 @@ class BinaryItem(UefispiderItem):
     binary_name = Field()
     pass
 
+class GigabyteLinkItem(UefispiderItem):
+    driver_type = Field()
+    url = Field()
+    name = Field()
+
+class GigabyteUpdateItem(UefispiderItem):
+    version = Field()
+    date = Field()
+    desc = Field()
+    bios_url = Field()
+    attrs = Field()
+
+class LenovoUpdateItem(UefispiderItem):
+    version = Field()
+    date = Field()
+    desc = Field()
+    bios_url = Field()
+    url = Field()
+    products = Field()
+    notes_url = Field()
+
 class AsrockLinkItem(UefispiderItem):
     chipset = Field()
     product = Field()
