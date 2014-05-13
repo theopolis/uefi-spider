@@ -34,7 +34,6 @@ class HPSpider(UefiSpider):
   ]
 
   crawled_items = {}
-  #crawled_searches = []
   ### Store all of the crawled search results
 
   def _get_download_link(self, filename, sp_number= None):
@@ -161,12 +160,6 @@ class HPSpider(UefiSpider):
         fh.write('%s %s %s %s\n' % (response.meta["this"][0], response.meta["this"][1], response.meta["this"][2], response.meta["this"][3]))
       print "Reached 100 results, consider day-granularity."
 
-    print ""
-    print "RESULTS: %d" % len(results)
-    print response.meta["searches"]
-    print ""
-
-    #items = []
     for result in results:
       download_type = "".join(result.xpath(".//td")[2].xpath(".//text()").extract()).strip()
       if download_type != "BIOS":
@@ -185,7 +178,6 @@ class HPSpider(UefiSpider):
         continue
       ### Store the item in the object-global item stash.
       self.crawled_items[item["item_id"]] = item
-      #items.append(item)
 
     remaining_search_count = len(response.meta["searches"])
     if remaining_search_count > 0:
@@ -207,11 +199,6 @@ class HPSpider(UefiSpider):
       
   def parse_update(self, response):
     ### The update (download) page for the BIOS.
-
-    #if response.body.find("does NOT include a System BIOS image") >= 0:
-    #  ### Intel ME drivers are sometimes classified as BIOS updates.
-    #  return self.parse_me_update(response)
-
     sel = Selector(response) 
 
     fields = sel.css("table.m10").xpath(".//tr/td")
@@ -333,7 +320,6 @@ class HPSpider(UefiSpider):
 
     ### Finally, download the BIOS
     if item["bios_url"] is None:
-
       sp_number = sections["SOFTPAQ NUMBER"][0][:7] if "SOFTPAQ NUMBER" in sections else "0"
       download_link = self._get_download_link(item["binary_name"], sp_number= sp_number)
       if download_link is None:
@@ -346,7 +332,6 @@ class HPSpider(UefiSpider):
   def parse_advanced_notes(self, response):
     sel = Selector(response)
 
-    #content = sel.css("div#tabContent")
     sections = sel.css("div#tabContent").xpath(".//font").css(".heading")
     content = sel.css("div#tabContent").xpath(".//font").css(".body")
 
@@ -388,18 +373,9 @@ class HPSpider(UefiSpider):
   def parse_binary(self, response):
     item = response.meta["page_item"]
 
-    print ""
-    print json.dumps(dict(item), indent=2)
-    print ""
-
     if item["binary_name"] == "Obtain\u00a0softwar":
       ### This is an odd handling of this error-case, a EULA is required.
       item["binary_name"] = "EULA.html"
     item["binary"] = response.body
 
     yield item
-
-  #def parse_me_update(self, response):
-  #  ### The Intel ME updates have a 'slightly' different format than BIOS updates.
-  #  print "Found an ME update", dict(response.meta["result_item"])
-  #  pass
